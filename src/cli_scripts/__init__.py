@@ -137,6 +137,8 @@ def cli():
         return generate()
     if args[0] == "init":
         return init()
+    if args[0] == "run":
+        return run()
     help()
 
 
