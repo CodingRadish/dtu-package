@@ -1,6 +1,6 @@
 # Welcome
 ```bash
-pip install git+https://github.com/FredslundMagnus/dtu-package.git
+pip install git+https://github.com/CodingRadish/dtu-package.git
 ```
 or 
 ```bash
@@ -12,7 +12,7 @@ Run this on your pc and it will show you commands you should use on the server:
 ```python
 from dtu import setup
 
-setup(github_link="https://github.com/FredslundMagnus/Systems-Optimization.git", python="3.10.7", packages=["numpy", "pandas", "numba", "matplotlib"])
+setup(github_link="https://github.com/CodingRadish/dtu-package.git", python="3.10.7", packages=["numpy", "pandas", "numba", "matplotlib"])
 ```
 If this is your second project set
 ```python
