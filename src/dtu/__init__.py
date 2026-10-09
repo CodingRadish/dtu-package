@@ -71,6 +71,8 @@ def is_list_of_int(value: object) -> bool:
 
 
 def serialize_for_cli(value: object) -> str:
+    if is_list_of_int(value):
+        return "[" + ",".join(str(item) for item in value) + "]"
     return shlex.quote(str(value))
 
 
