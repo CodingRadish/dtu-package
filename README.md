@@ -42,8 +42,9 @@ class Defaults(Parameters):
 Defaults.start()
 ```
 
-For `list[int]` CLI overrides used through `MYARGS` (for example in `submit_cpu.sh`), avoid spaces/brackets in values and use `-` or `.` separators instead:
+For `list[int]` CLI overrides used through `MYARGS` (for example in `submit_cpu.sh`), you can now use either bracket syntax with spaces or a separator format:
 ```bash
+-channels [16, 32, 64] -strides [1, 2, 2]
 -channels 16-32-64 -strides 1-2-2
 ```
 

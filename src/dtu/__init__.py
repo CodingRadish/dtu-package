@@ -337,9 +337,28 @@ class Parameters():
         if len(args) == 0:
             return {}
         temp = {}
-        for _key, value in zip(args[::2], args[1::2]):
+        i = 0
+        while i < len(args):
+            _key = args[i]
+            if not _key.startswith("-"):
+                raise ValueError(f"Expected argument key prefixed with '-', got: {_key}")
+            i += 1
             key: str = _key[1:]
             _type = cls.__annotations__[key] if key != "ID" else int
+            if i >= len(args):
+                raise ValueError(f"Missing value for argument: {_key}")
+            value = args[i]
+            if is_list_of_int_annotation(_type) and value.startswith("[") and not value.endswith("]"):
+                values = [value]
+                i += 1
+                while i < len(args):
+                    values.append(args[i])
+                    if args[i].endswith("]"):
+                        break
+                    i += 1
+                if not values[-1].endswith("]"):
+                    raise ValueError(f"Could not parse list value for argument: {_key}")
+                value = " ".join(values)
             try:
                 _type: type = eval(_type) if isinstance(_type, str) else _type
             except NameError:
@@ -349,4 +368,5 @@ class Parameters():
             if type(_type) is _Parameter:
                 value = relive(value)
             temp[key] = value
+            i += 1
         return temp
