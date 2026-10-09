@@ -3,10 +3,26 @@ import ast
 import importlib
 import inspect
 import shlex
-from dataclasses import dataclass as dtu
+from dataclasses import MISSING, dataclass, field
 from inspect import signature
 from sys import argv
-dtu
+
+
+def _prepare_mutable_defaults(cls):
+    for name, annotation in getattr(cls, "__annotations__", {}).items():
+        if is_list_of_int_annotation(annotation) and type(getattr(cls, name, None)) is list:
+            default_value = tuple(getattr(cls, name))
+            setattr(cls, name, field(default_factory=lambda default=default_value: list(default)))
+    return cls
+
+
+def dtu(cls=None, **kwargs):
+    def wrap(inner_cls):
+        prepared_cls = _prepare_mutable_defaults(inner_cls)
+        return dataclass(prepared_cls, **kwargs)
+    if cls is None:
+        return wrap
+    return wrap(cls)
 
 
 def _get_transfer_format(module, class_name, args, kwargs, symbol="~") -> str:
@@ -261,6 +277,13 @@ class Parameters():
     def start(cls) -> None:
         override = cls.override(argv[1:])
         values = {name: value for name, value in cls.__dict__.items() if name[0] != "_" and name != "run" and name != "GPU"}
+        for name, dataclass_field in getattr(cls, "__dataclass_fields__", {}).items():
+            if name in values:
+                continue
+            if dataclass_field.default is not MISSING:
+                values[name] = dataclass_field.default
+            elif dataclass_field.default_factory is not MISSING:
+                values[name] = dataclass_field.default_factory()
         values['cls'] = cls
         values['self'] = cls
         values['isServer'] = len(argv[1:]) > 1
