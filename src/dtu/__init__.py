@@ -6,6 +6,15 @@ import shlex
 from dataclasses import MISSING, dataclass, field
 from inspect import signature
 from sys import argv
+from typing import Any, Callable, TypeVar, overload
+
+try:
+    from typing import dataclass_transform
+except ImportError:
+    from typing_extensions import dataclass_transform
+
+
+_T = TypeVar("_T")
 
 
 def _prepare_mutable_defaults(cls):
@@ -16,7 +25,18 @@ def _prepare_mutable_defaults(cls):
     return cls
 
 
-def dtu(cls=None, **kwargs):
+@dataclass_transform(field_specifiers=(field,))
+@overload
+def dtu(cls: type[_T], **kwargs: Any) -> type[_T]:
+    ...
+
+
+@overload
+def dtu(cls: None = None, **kwargs: Any) -> Callable[[type[_T]], type[_T]]:
+    ...
+
+
+def dtu(cls: type[_T] | None = None, **kwargs: Any) -> type[_T] | Callable[[type[_T]], type[_T]]:
     def wrap(inner_cls):
         prepared_cls = _prepare_mutable_defaults(inner_cls)
         return dataclass(prepared_cls, **kwargs)
