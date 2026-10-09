@@ -72,7 +72,7 @@ def is_list_of_int(value: object) -> bool:
 
 def serialize_for_cli(value: object) -> str:
     if is_list_of_int(value):
-        return "[" + ",".join(str(item) for item in value) + "]"
+        return "-".join(str(item) for item in value)
     return shlex.quote(str(value))
 
 
@@ -93,6 +93,12 @@ def parse_for_type(value: str, expected_type: object) -> object:
             return parsed
         raise ValueError
     if is_list_of_int_annotation(expected_type):
+        separators = {separator for separator in ("-", ".") if separator in value}
+        if len(separators) == 1 and all(char.isdigit() or char in separators for char in value):
+            parts = value.split(separators.pop())
+            if any(part == "" for part in parts):
+                raise ValueError
+            return [int(part) for part in parts]
         parsed = ast.literal_eval(value)
         if not is_list_of_int(parsed):
             raise ValueError

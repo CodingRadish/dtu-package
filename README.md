@@ -42,6 +42,11 @@ class Defaults(Parameters):
 Defaults.start()
 ```
 
+For `list[int]` CLI overrides used through `MYARGS` (for example in `submit_cpu.sh`), avoid spaces/brackets in values and use `-` or `.` separators instead:
+```bash
+-channels 16-32-64 -strides 1-2-2
+```
+
 example of generate.py
 ```python
 from main import Defaults
