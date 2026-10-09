@@ -1,6 +1,8 @@
 from __future__ import annotations
+import ast
 import importlib
 import inspect
+import shlex
 from dataclasses import dataclass as dtu
 from inspect import signature
 from sys import argv
@@ -22,6 +24,42 @@ def check_primitives(args, kwargs: dict):
     for arg in list(args) + list(kwargs.values()):
         if type(arg) not in {int, str, bool, float}:
             raise Exception("Please only use the types {int, str, bool, float} in a Parameter")
+
+
+def is_list_of_int_annotation(annotation: object) -> bool:
+    return annotation == list[int] or annotation == "list[int]"
+
+
+def is_list_of_int(value: object) -> bool:
+    return type(value) is list and all(type(item) is int for item in value)
+
+
+def serialize_for_cli(value: object) -> str:
+    return shlex.quote(str(value))
+
+
+def parse_for_type(value: str, expected_type: object) -> object:
+    if expected_type is str or expected_type == "str":
+        return value
+    if expected_type in {int, "int"}:
+        return int(ast.literal_eval(value))
+    if expected_type in {float, "float"}:
+        return float(ast.literal_eval(value))
+    if expected_type in {bool, "bool"}:
+        if value in {"true", "false"}:
+            return value == "true"
+        if value in {"True", "False"}:
+            return value == "True"
+        parsed = ast.literal_eval(value)
+        if type(parsed) is bool:
+            return parsed
+        raise ValueError
+    if is_list_of_int_annotation(expected_type):
+        parsed = ast.literal_eval(value)
+        if not is_list_of_int(parsed):
+            raise ValueError
+        return parsed
+    return value
 
 
 class _Parameter(type):
@@ -119,15 +157,20 @@ dtu
 
 def check(params, features):
     for key, value in params.items():
-        if value.__class__ not in {int, str, bool, float} and value.__class__.__class__ is not _Parameter:
-            raise Exception(f"Problem with {key}: {value}. You can only user int, str, bool, float or objects with metaclass=Parameter")
         if key not in features:
             raise Exception(f'The feature "{key}" does not exist.')
-        if value.__class__ != features[key]:
-            if value.__class__ == int and (features[key] == float or features[key] == 'float'):
+        expected_type = features[key]
+        if is_list_of_int_annotation(expected_type):
+            if not is_list_of_int(value):
+                raise Exception(f'The feature "{key}" should be of type list[int].')
+            continue
+        if value.__class__ not in {int, str, bool, float} and value.__class__.__class__ is not _Parameter:
+            raise Exception(f"Problem with {key}: {value}. You can only user int, str, bool, float or objects with metaclass=Parameter")
+        if value.__class__ != expected_type:
+            if value.__class__ == int and (expected_type == float or expected_type == 'float'):
                 params[key] = float(value)
             else:
-                _class_ = features[key].__name__ if hasattr(features[key], "__name__") else features[key]
+                _class_ = expected_type.__name__ if hasattr(expected_type, "__name__") else expected_type
                 if value.__class__.__name__ != _class_:
                     raise Exception(f'The feature "{key}" should be of type {_class_}.')
                 # else:
@@ -141,6 +184,8 @@ def colorize(obj: object) -> str:
         return f'<j>"{obj}"</j>'
     if type(obj) is bool:
         return f"<e>{obj}</e>"
+    if is_list_of_int(obj):
+        return f"<j>{obj}</j>"
 
 
 def print_parameters(values: dict[str, object], override: dict[str, object]) -> None:
@@ -185,7 +230,8 @@ def genExperiments(features, folders, file, name, n, gpu, **params):
     params = change_parameter(params)
     for i in range(n):
         params['ID'] = i
-        file.write(f'bsub -o "outputs/{name}/Markdown/{name}_{i}.md" -J "{name}_{i}" -env MYARGS="-name {name}-{i} {" ".join(f"-{name} {value}" for name, value in params.items())}" < submit_{"cpu" if gpu is None else ("gpu_" + gpu.name)}.sh\n')
+        arguments = " ".join(f"-{param_name} {serialize_for_cli(value)}" for param_name, value in params.items())
+        file.write(f'bsub -o "outputs/{name}/Markdown/{name}_{i}.md" -J "{name}_{i}" -env MYARGS="-name {name}-{i} {arguments}" < submit_{"cpu" if gpu is None else ("gpu_" + gpu.name)}.sh\n')
 
 
 class Parameters():
@@ -244,11 +290,11 @@ class Parameters():
             key: str = _key[1:]
             _type = cls.__annotations__[key] if key != "ID" else int
             try:
-                _type: type = _type if isinstance(_type, type) else eval(_type)
+                _type: type = eval(_type) if isinstance(_type, str) else _type
             except NameError:
                 value = relive(value)
-            if _type in {int, bool, float}:
-                value = eval(value)
+            else:
+                value = parse_for_type(value, _type)
             if type(_type) is _Parameter:
                 value = relive(value)
             temp[key] = value
