@@ -48,6 +48,7 @@ For `list[int]` CLI overrides used through `MYARGS` (for example in `submit_cpu.
 -channels [16, 32, 64] -strides [1, 2, 2]
 -channels 16-32-64 -strides 1-2-2
 ```
+When `experiments.sh` is generated from list parameters, it emits the space-separated form (for example `--channels 16 32 64`).
 
 example of generate.py
 ```python

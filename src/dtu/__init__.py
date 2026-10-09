@@ -75,6 +75,11 @@ def serialize_for_cli(value: object) -> str:
         return "-".join(str(item) for item in value)
     return shlex.quote(str(value))
 
+def serialize_parameter_for_cli(param_name: str, value: object) -> str:
+    if is_list_of_int(value):
+        return f"--{param_name} {' '.join(str(item) for item in value)}"
+    return f"-{param_name} {serialize_for_cli(value)}"
+
 
 def parse_for_type(value: str, expected_type: object) -> object:
     if expected_type is str or expected_type == "str":
@@ -282,7 +287,7 @@ def genExperiments(features, folders, file, name, n, gpu, **params):
     params = change_parameter(params)
     for i in range(n):
         params['ID'] = i
-        arguments = " ".join(f"-{param_name} {serialize_for_cli(value)}" for param_name, value in params.items())
+        arguments = " ".join(serialize_parameter_for_cli(param_name, value) for param_name, value in params.items())
         file.write(f'bsub -o "outputs/{name}/Markdown/{name}_{i}.md" -J "{name}_{i}" -env MYARGS="-name {name}-{i} {arguments}" < submit_{"cpu" if gpu is None else ("gpu_" + gpu.name)}.sh\n')
 
 
