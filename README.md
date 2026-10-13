@@ -30,6 +30,7 @@ class Defaults(Parameters):
     instances: int = 1
     GPU: bool = False
     time: int = 3600
+    walltime: str | None = None
 
     b: float = 2.0
     a: int = 1
@@ -54,7 +55,7 @@ example of generate.py
 ```python
 from main import Defaults
 
-Defaults("Test1", b=4, d="dsf")
+Defaults("Test1", b=4, d="dsf", walltime="12:00")
 ```
 It will check types
 

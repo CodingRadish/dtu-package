@@ -281,14 +281,15 @@ def change_parameter(params: dict[str, object]) -> dict[str, object]:
     return params
 
 
-def genExperiments(features, folders, file, name, n, gpu, **params):
+def genExperiments(features, folders, file, name, n, gpu, walltime=None, **params):
     createFolders(name, folders, file)
     check(params, features)
     params = change_parameter(params)
+    walltime_argument = f"-W {walltime} " if walltime else ""
     for i in range(n):
         params['ID'] = i
         arguments = " ".join(serialize_parameter_for_cli(param_name, value) for param_name, value in params.items())
-        file.write(f'bsub -o "outputs/{name}/Markdown/{name}_{i}.md" -J "{name}_{i}" -env MYARGS="-name {name}-{i} {arguments}" < submit_{"cpu" if gpu is None else ("gpu_" + gpu.name)}.sh\n')
+        file.write(f'bsub {walltime_argument}-o "outputs/{name}/Markdown/{name}_{i}.md" -J "{name}_{i}" -env MYARGS="-name {name}-{i} {arguments}" < submit_{"cpu" if gpu is None else ("gpu_" + gpu.name)}.sh\n')
 
 
 class Parameters():
@@ -298,6 +299,7 @@ class Parameters():
     instances: int = 1
     GPU: None | GPU = None
     time: int = 3600
+    walltime: str | None = None
     isServer: bool = False
     __first__: bool = True
 
@@ -311,7 +313,16 @@ class Parameters():
         self.folders = list(self.folders)
         features_with_GPU, folders = dict(self.__annotations__), ['Markdown'] + self.folders
         features = {name: value for name, value in features_with_GPU.items() if name != "GPU"}
-        genExperiments(features, folders, file, self.name, self.instances, self.GPU, **{k: v for k, v in self.__dict__.items() if k not in {"name", "instances", "folders", "GPU"}})
+        genExperiments(
+            features,
+            folders,
+            file,
+            self.name,
+            self.instances,
+            self.GPU,
+            self.walltime,
+            **{k: v for k, v in self.__dict__.items() if k not in {"name", "instances", "folders", "GPU", "walltime"}}
+        )
         file.close()
 
     @classmethod

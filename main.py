@@ -14,6 +14,7 @@ class Defaults(Parameters):
     instances: int = 1
     GPU: None | GPU = None
     time: int = 3600
+    walltime: str | None = None
 
     b: float = 2.0
     a: int = 1
